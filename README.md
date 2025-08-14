@@ -9,6 +9,7 @@ A small TypeScript CLI for exploring Zendesk tickets from your terminal. Inspire
 - Filter JSON by fields (supports dotted paths and array selectors like `comments[].id`)
 - List available JSON fields for quick discovery
 - Open a ticket in the browser
+- List tickets with flexible filters (assignee, group, status, date, query)
 
 ## Requirements
 
@@ -97,6 +98,48 @@ zd ticket view 309438 --template "{{id}} {{status}} {{subject}}"
 
 # open in browser
 zd ticket view 309438 --web
+```
+
+### `ticket list`
+
+List tickets using Zendesk Search API with familiar gh-style filters.
+
+```bash
+zd ticket list [flags]
+```
+
+Flags:
+
+- `--assignee <me|email|id>` – filter by assignee (default: `me`)
+- `--group <id|name>` – filter by group (name auto-resolves to id)
+- `--status <list>` – comma-separated statuses: `new,open,pending,on-hold,solved,closed` (default: `new,open,pending,on-hold`)
+- `--updated-since <ISO>` – only tickets updated since date (e.g., `2025-01-01`)
+- `--query <string>` – additional free-text query
+- `--sort <field>` – `created|updated|priority` (default: `updated`)
+- `--order <order>` – `asc|desc` (default: `desc`)
+- `--limit <N>` – per page (default: `30`), `--page <N>` – page number (default: `1`)
+- `-j, --json` – output raw JSON
+- `--fields <fields>` – comma‑separated fields to include in JSON output
+- `-t, --template <string>` – format JSON with a simple template
+- `-w, --web` – open the same search in the browser
+
+Examples:
+
+```bash
+# default: my open tickets, most recently updated
+zd ticket list
+
+# by group (name will be resolved to id)
+zd ticket list --group "Support" --status open,pending --limit 20
+
+# by assignee and updated since date
+zd ticket list --assignee me --updated-since 2025-01-01
+
+# open the same search in Zendesk agent UI
+zd ticket list --group "Support" --status open --web
+
+# JSON with selected fields
+zd ticket list --json --fields "id,subject,status,assignee_id,updated_at" --limit 5
 ```
 
 ## Development
