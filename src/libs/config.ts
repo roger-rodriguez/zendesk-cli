@@ -24,11 +24,22 @@ let cachedConfig: AppConfig | null = null;
 export function getConfig(customEnvPath?: string): AppConfig {
   if (cachedConfig) return cachedConfig;
 
+  // Prefer environment variables (12-factor); fall back to .env file only if
+  // the required vars are absent. All-or-nothing: if process.env doesn't
+  // satisfy the schema, read the file rather than mixing sources.
+  const envResult = configSchema.safeParse(process.env);
+  if (envResult.success) {
+    cachedConfig = envResult.data;
+    return cachedConfig;
+  }
+
   const projectRoot = path.resolve(__dirname, "../../");
   const envPath = customEnvPath ?? path.join(projectRoot, ".env");
 
   if (!fs.existsSync(envPath)) {
-    throw new Error(`.env file not found at ${envPath}`);
+    throw new Error(
+      `.env file not found at ${envPath} and required environment variables are not set`
+    );
   }
 
   const fileContents = fs.readFileSync(envPath, "utf8");
