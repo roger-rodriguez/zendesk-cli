@@ -38,13 +38,24 @@ npx tsx src/index.ts --help
 Required variables:
 
 - `ZENDESK_SUB_DOMAIN` – your Zendesk subdomain (e.g., `acme` for `https://acme.zendesk.com`)
-- `ZENDESK_API_KEY` – API key or token your instance accepts
 
-Example `.env`:
+Auth — provide **one** of:
+
+- `ZENDESK_API_KEY` – API key/token (sent as `Basic` auth)
+- `ZENDESK_OAUTH_TOKEN` – OAuth bearer token (sent as `Bearer` auth); use the `access_token` field from your OAuth credential JSON
+
+Example `.env` using an API key:
 
 ```dotenv
 ZENDESK_SUB_DOMAIN=acme
 ZENDESK_API_KEY=xxxxxx
+```
+
+Example `.env` using an OAuth token:
+
+```dotenv
+ZENDESK_SUB_DOMAIN=acme
+ZENDESK_OAUTH_TOKEN=af24b5e91b2516e4baf982b0...
 ```
 
 The loader lives in `src/libs/config.ts` and is used by the API client in `src/libs/zendesk.ts`.

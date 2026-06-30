@@ -2,7 +2,7 @@ import { getConfig } from "./config";
 
 export interface ZendeskCredentials {
   subdomain: string;
-  apiToken: string;
+  apiToken?: string;
   oauthToken?: string;
 }
 
@@ -63,29 +63,25 @@ export interface TicketSearchResponse {
 
 export class ZendeskClient {
   private readonly subdomain: string;
-  private readonly apiToken: string;
+  private readonly apiToken?: string;
+  private readonly oauthToken?: string;
 
   constructor(credentials: ZendeskCredentials) {
+    if (!credentials.apiToken && !credentials.oauthToken) {
+      throw new Error("Either apiToken or oauthToken must be provided");
+    }
     this.subdomain = credentials.subdomain;
     this.apiToken = credentials.apiToken;
+    this.oauthToken = credentials.oauthToken;
   }
 
   static fromEnv(): ZendeskClient {
     const cfg = getConfig();
-    const subdomain = cfg.ZENDESK_SUB_DOMAIN;
-    const apiToken = cfg.ZENDESK_API_KEY;
-
-    if (!subdomain) {
-      throw new Error(
-        "Missing required environment variable: ZENDESK_SUB_DOMAIN"
-      );
-    }
-
-    if (!apiToken) {
-      throw new Error("Missing required environment variable: ZENDESK_API_KEY");
-    }
-
-    return new ZendeskClient({ subdomain, apiToken });
+    return new ZendeskClient({
+      subdomain: cfg.ZENDESK_SUB_DOMAIN,
+      apiToken: cfg.ZENDESK_API_KEY,
+      oauthToken: cfg.ZENDESK_OAUTH_TOKEN,
+    });
   }
 
   async getTicket(ticketId: string | number): Promise<TicketResponse> {
@@ -211,6 +207,9 @@ export class ZendeskClient {
   }
 
   private getAuthorizationHeader(): string {
+    if (this.oauthToken) {
+      return `Bearer ${this.oauthToken}`;
+    }
     return `Basic ${this.apiToken}`;
   }
 }
