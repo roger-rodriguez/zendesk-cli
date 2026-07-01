@@ -6,15 +6,25 @@ import { realpathSync } from "node:fs";
 
 import { ticketCmd } from "./commands/ticket";
 
+// Commander's addCommand() does NOT copy the parent's settings (including
+// _exitCallback) onto the subcommand the way `.command()` does — that only
+// happens for commands built with `.command()`. Since ticketCmd/viewCmd/
+// listCmd are all wired up via addCommand(), calling exitOverride() only on
+// the root `program` leaves every subcommand's _exitCallback unset. Any
+// error raised from a subcommand (e.g. a missing required <id> argument)
+// then falls straight through to process.exit(), killing the whole host
+// process — exactly the failure this function exists to prevent. So we
+// walk the whole command tree and call exitOverride() on every node.
+function applyExitOverride(cmd: Command): void {
+  cmd.exitOverride();
+  for (const sub of cmd.commands) applyExitOverride(sub);
+}
+
 function createProgram(): Command {
   const program = new Command();
   program.name("zd").description("CLI to manage Zendesk").version("1.0.0");
   program.addCommand(ticketCmd);
-  // Throw a CommanderError instead of calling process.exit() on --help,
-  // --version, or parse errors. Without this, any of those paths would
-  // kill the caller's process outright when `run()` is imported and
-  // invoked in-process instead of run as a standalone CLI.
-  program.exitOverride();
+  applyExitOverride(program);
   return program;
 }
 
