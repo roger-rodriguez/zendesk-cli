@@ -18,17 +18,19 @@ A small TypeScript CLI for exploring Zendesk tickets from your terminal. Inspire
 ## Installation (local development)
 
 ```bash
-# install dependencies
+# install dependencies and build dist/index.js (runs automatically via the
+# "prepare" script)
 npm install
 
 # link the CLI locally so `zd` is on your PATH
 npm link
 ```
 
-Alternatively, you can run any command with tsx without linking:
+Alternatively, you can run any command against the TypeScript source directly with tsx, without building or linking:
 
 ```bash
-npx tsx src/index.ts --help
+npm run dev -- --help
+# or: npx tsx src/index.ts --help
 ```
 
 ## Configuration
@@ -155,14 +157,21 @@ zd ticket list --json --fields "id,subject,status,assignee_id,updated_at" --limi
 
 ## Development
 
-- Code entrypoint: `src/index.ts` (bin is `zd` via shebang `npx -y tsx`)
+- Code entrypoint: `src/index.ts`
 - Commands live in `src/commands/`
 - API client lives in `src/libs/zendesk.ts`
 - Config loader + validation lives in `src/libs/config.ts`
+- `zd` (the `bin` entry) points at the built `dist/index.js`, a single bundled ESM file produced by esbuild — no `node_modules` needed at runtime
 
 Scripts:
 
 ```bash
+# bundle src/index.ts into dist/index.js (esbuild)
+npm run build
+
+# run against TypeScript source directly, no build step
+npm run dev -- --help
+
 # unit tests (vitest)
 npm test
 

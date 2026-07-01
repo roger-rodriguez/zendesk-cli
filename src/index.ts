@@ -1,4 +1,4 @@
-#!/usr/bin/env -S npx -y tsx
+#!/usr/bin/env node
 
 import { Command } from "commander";
 
