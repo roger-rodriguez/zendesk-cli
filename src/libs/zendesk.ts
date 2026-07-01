@@ -153,8 +153,17 @@ export class ZendeskClient {
     qp.set("query", params.query);
     if (params.page) qp.set("page", String(params.page));
     if (params.perPage) qp.set("per_page", String(params.perPage));
-    if (params.sortBy) qp.set("order_by", params.sortBy);
-    if (params.order) qp.set("sort", params.order);
+    if (params.sortBy) {
+      // Zendesk's sort_by only accepts updated_at, created_at, priority,
+      // status, or ticket_type — map our short CLI-facing names to those.
+      const sortByMap: Record<string, string> = {
+        created: "created_at",
+        updated: "updated_at",
+        priority: "priority",
+      };
+      qp.set("sort_by", sortByMap[params.sortBy] ?? params.sortBy);
+    }
+    if (params.order) qp.set("sort_order", params.order);
 
     const url = `https://${this.subdomain}.zendesk.com/api/v2/search.json?${qp.toString()}`;
     const response = await fetch(url, {
