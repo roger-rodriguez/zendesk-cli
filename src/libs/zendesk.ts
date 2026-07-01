@@ -86,7 +86,7 @@ export class ZendeskClient {
 
   async getTicket(ticketId: string | number): Promise<TicketResponse> {
     const url = `https://${this.subdomain}.zendesk.com/api/v2/tickets/${encodeURIComponent(
-      String(ticketId)
+      String(ticketId),
     )}.json`;
 
     const response = await fetch(url, {
@@ -101,7 +101,7 @@ export class ZendeskClient {
       throw new Error(
         `Zendesk request failed (${response.status} ${response.statusText})${
           bodyText ? `: ${bodyText}` : ""
-        }`
+        }`,
       );
     }
 
@@ -110,10 +110,10 @@ export class ZendeskClient {
   }
 
   async getTicketComments(
-    ticketId: string | number
+    ticketId: string | number,
   ): Promise<TicketCommentsResponse> {
     const url = `https://${this.subdomain}.zendesk.com/api/v2/tickets/${encodeURIComponent(
-      String(ticketId)
+      String(ticketId),
     )}/comments.json`;
 
     const response = await fetch(url, {
@@ -128,7 +128,7 @@ export class ZendeskClient {
       throw new Error(
         `Zendesk request failed (${response.status} ${response.statusText})${
           bodyText ? `: ${bodyText}` : ""
-        }`
+        }`,
       );
     }
 
@@ -138,7 +138,7 @@ export class ZendeskClient {
 
   getAgentTicketUrl(ticketId: string | number): string {
     return `https://${this.subdomain}.zendesk.com/agent/tickets/${encodeURIComponent(
-      String(ticketId)
+      String(ticketId),
     )}`;
   }
 
@@ -169,7 +169,7 @@ export class ZendeskClient {
       throw new Error(
         `Zendesk request failed (${response.status} ${response.statusText})${
           bodyText ? `: ${bodyText}` : ""
-        }`
+        }`,
       );
     }
 
@@ -180,7 +180,7 @@ export class ZendeskClient {
   async getGroupIdByName(name: string): Promise<number | undefined> {
     // Use incremental search for groups; match by case-insensitive name
     const url = `https://${this.subdomain}.zendesk.com/api/v2/groups/search.json?query=${encodeURIComponent(
-      name
+      name,
     )}`;
     const response = await fetch(url, {
       headers: {
@@ -196,7 +196,7 @@ export class ZendeskClient {
     };
     const groups = body.groups ?? [];
     const found = groups.find(
-      (g) => g.name.toLowerCase() === name.toLowerCase()
+      (g) => g.name.toLowerCase() === name.toLowerCase(),
     );
     return found?.id;
   }

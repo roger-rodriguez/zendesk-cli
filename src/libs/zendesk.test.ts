@@ -13,31 +13,33 @@ function mockFetchWithResponse(body: unknown, status = 200) {
   });
 
   // Wrap so we can inspect what headers were passed
-  const spy = vi.spyOn(global, "fetch").mockImplementation(async (url, init) => {
-    const headers = (init?.headers ?? {}) as Record<string, string>;
-    Object.assign(capturedHeaders, headers);
-    return fetchMock(url, init);
-  });
+  const spy = vi
+    .spyOn(global, "fetch")
+    .mockImplementation(async (url, init) => {
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      Object.assign(capturedHeaders, headers);
+      return fetchMock(url, init);
+    });
 
   return { spy, capturedHeaders };
 }
 
 describe("ZendeskClient constructor", () => {
   it("throws when neither apiToken nor oauthToken is provided", () => {
-    expect(
-      () => new ZendeskClient({ subdomain: "acme" })
-    ).toThrow("Either apiToken or oauthToken must be provided");
+    expect(() => new ZendeskClient({ subdomain: "acme" })).toThrow(
+      "Either apiToken or oauthToken must be provided",
+    );
   });
 
   it("accepts apiToken alone", () => {
     expect(
-      () => new ZendeskClient({ subdomain: "acme", apiToken: "key123" })
+      () => new ZendeskClient({ subdomain: "acme", apiToken: "key123" }),
     ).not.toThrow();
   });
 
   it("accepts oauthToken alone", () => {
     expect(
-      () => new ZendeskClient({ subdomain: "acme", oauthToken: "tok123" })
+      () => new ZendeskClient({ subdomain: "acme", oauthToken: "tok123" }),
     ).not.toThrow();
   });
 
@@ -48,7 +50,7 @@ describe("ZendeskClient constructor", () => {
           subdomain: "acme",
           apiToken: "key123",
           oauthToken: "tok123",
-        })
+        }),
     ).not.toThrow();
   });
 });
@@ -67,7 +69,10 @@ describe("ZendeskClient Authorization header", () => {
 
   it("sends Bearer header when using oauthToken", async () => {
     const { capturedHeaders } = mockFetchWithResponse({ ticket: { id: 1 } });
-    const client = new ZendeskClient({ subdomain: "acme", oauthToken: "mytoken" });
+    const client = new ZendeskClient({
+      subdomain: "acme",
+      oauthToken: "mytoken",
+    });
     await client.getTicket(1);
     expect(capturedHeaders["Authorization"]).toBe("Bearer mytoken");
   });

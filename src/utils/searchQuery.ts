@@ -24,7 +24,7 @@ export function buildTicketSearchQuery(flags: TicketListFlagsLike): {
       flags.group ||
       flags.status ||
       flags.updatedSince ||
-      flags.query
+      flags.query,
   );
 
   // assignee

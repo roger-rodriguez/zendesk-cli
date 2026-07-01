@@ -13,7 +13,7 @@ const listTicketCmd = new Command("list")
   .option("--group <id|name>", "Filter by group")
   .option(
     "--status <list>",
-    "Comma separated statuses: new,open,pending,on-hold,solved,closed"
+    "Comma separated statuses: new,open,pending,on-hold,solved,closed",
   )
   .option("--updated-since <ISO>", "Only tickets updated since ISO date")
   .option("--query <string>", "Additional free-text query")
@@ -32,107 +32,112 @@ const listTicketCmd = new Command("list")
     } catch (err) {
       console.error(
         chalk.red(
-          `${(err as Error).message}\nExpected env: ZENDESK_SUB_DOMAIN and ZENDESK_API_KEY`
-        )
+          `${(err as Error).message}\nExpected env: ZENDESK_SUB_DOMAIN and ZENDESK_API_KEY`,
+        ),
       );
       process.exitCode = 1;
       return;
     }
 
-    // Resolve group name to id if possible, otherwise leave it to the query builder to quote
-    let groupFilter: string | undefined = options.group;
-    if (groupFilter && !/^\d+$/.test(String(groupFilter))) {
-      const resolved = await client.getGroupIdByName(String(groupFilter));
-      if (resolved) groupFilter = String(resolved);
-    }
+    try {
+      // Resolve group name to id if possible, otherwise leave it to the query builder to quote
+      let groupFilter: string | undefined = options.group;
+      if (groupFilter && !/^\d+$/.test(String(groupFilter))) {
+        const resolved = await client.getGroupIdByName(String(groupFilter));
+        if (resolved) groupFilter = String(resolved);
+      }
 
-    const { query } = buildTicketSearchQuery({
-      assignee: options.assignee,
-      group: groupFilter ?? options.group,
-      status: options.status,
-      updatedSince: options.updatedSince,
-      query: options.query,
-    });
+      const { query } = buildTicketSearchQuery({
+        assignee: options.assignee,
+        group: groupFilter ?? options.group,
+        status: options.status,
+        updatedSince: options.updatedSince,
+        query: options.query,
+      });
 
-    if (options.web) {
-      const url = client.toWebSearchUrl(query);
-      await import("node:child_process").then(({ exec }) =>
-        exec(
-          `${process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open"} ${url}`
-        )
-      );
-      return;
-    }
-
-    const sortBy = ["created", "updated", "priority"].includes(
-      String(options.sort)
-    )
-      ? (options.sort as "created" | "updated" | "priority")
-      : "updated";
-    const order = String(options.order) === "asc" ? "asc" : "desc";
-    const perPage = Number.parseInt(String(options.limit), 10) || 30;
-    const page = Number.parseInt(String(options.page), 10) || 1;
-
-    const result = await client.searchTickets({
-      query,
-      page,
-      perPage,
-      sortBy,
-      order,
-    });
-
-    if (options.json) {
-      const payload: any = result;
-      if (options.fields) {
-        const requested = String(options.fields)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        const filtered = result.results.map((r) => {
-          const out: Record<string, unknown> = {};
-          for (const f of requested) {
-            if (f in r) out[f] = (r as any)[f];
-          }
-          return out;
-        });
-        console.log(JSON.stringify(filtered, null, 2));
+      if (options.web) {
+        const url = client.toWebSearchUrl(query);
+        await import("node:child_process").then(({ exec }) =>
+          exec(
+            `${process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open"} ${url}`,
+          ),
+        );
         return;
       }
-      console.log(JSON.stringify(payload, null, 2));
-      return;
-    }
 
-    // Pretty table-like output
-    const rows = result.results.map((r) => {
-      const cols = [
-        String(r.id ?? "-").padEnd(8),
-        String(r.status ?? "-").padEnd(9),
-        String(r.priority ?? "-").padEnd(8),
-        String(r.assignee_id ?? "-").padEnd(12),
-        String(r.updated_at ?? "-").padEnd(24),
-        String(r.subject ?? "-")
-          .replace(/\n/g, " ")
-          .slice(0, 80),
-      ];
-      return cols.join("  ");
-    });
-    if (rows.length === 0) {
-      console.log(chalk.yellow("No tickets found."));
-      return;
-    }
-    console.log(
-      [
+      const sortBy = ["created", "updated", "priority"].includes(
+        String(options.sort),
+      )
+        ? (options.sort as "created" | "updated" | "priority")
+        : "updated";
+      const order = String(options.order) === "asc" ? "asc" : "desc";
+      const perPage = Number.parseInt(String(options.limit), 10) || 30;
+      const page = Number.parseInt(String(options.page), 10) || 1;
+
+      const result = await client.searchTickets({
+        query,
+        page,
+        perPage,
+        sortBy,
+        order,
+      });
+
+      if (options.json) {
+        const payload: any = result;
+        if (options.fields) {
+          const requested = String(options.fields)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const filtered = result.results.map((r) => {
+            const out: Record<string, unknown> = {};
+            for (const f of requested) {
+              if (f in r) out[f] = (r as any)[f];
+            }
+            return out;
+          });
+          console.log(JSON.stringify(filtered, null, 2));
+          return;
+        }
+        console.log(JSON.stringify(payload, null, 2));
+        return;
+      }
+
+      // Pretty table-like output
+      const rows = result.results.map((r) => {
+        const cols = [
+          String(r.id ?? "-").padEnd(8),
+          String(r.status ?? "-").padEnd(9),
+          String(r.priority ?? "-").padEnd(8),
+          String(r.assignee_id ?? "-").padEnd(12),
+          String(r.updated_at ?? "-").padEnd(24),
+          String(r.subject ?? "-")
+            .replace(/\n/g, " ")
+            .slice(0, 80),
+        ];
+        return cols.join("  ");
+      });
+      if (rows.length === 0) {
+        console.log(chalk.yellow("No tickets found."));
+        return;
+      }
+      console.log(
         [
-          "ID".padEnd(8),
-          "STATUS".padEnd(9),
-          "PRIORITY".padEnd(8),
-          "ASSIGNEE".padEnd(12),
-          "UPDATED AT".padEnd(24),
-          "SUBJECT",
-        ].join("  "),
-        ...rows,
-      ].join("\n")
-    );
+          [
+            "ID".padEnd(8),
+            "STATUS".padEnd(9),
+            "PRIORITY".padEnd(8),
+            "ASSIGNEE".padEnd(12),
+            "UPDATED AT".padEnd(24),
+            "SUBJECT",
+          ].join("  "),
+          ...rows,
+        ].join("\n"),
+      );
+    } catch (error) {
+      console.error(chalk.red(`Error: ${(error as Error).message}`));
+      process.exitCode = 1;
+    }
   });
 // path helpers moved to ../utils/jsonPaths
 
@@ -144,15 +149,15 @@ const viewTicketCmd = new Command("view")
   .option("-w, --web", "Open the ticket in the browser")
   .option(
     "--fields <fields>",
-    "Comma-separated fields to include in JSON output"
+    "Comma-separated fields to include in JSON output",
   )
   .option(
     "-t, --template <string>",
-    "Format JSON output using a template expression"
+    "Format JSON output using a template expression",
   )
   .option(
     "--list-fields",
-    "List available JSON field paths based on the fetched payload"
+    "List available JSON field paths based on the fetched payload",
   )
   .action(
     async (
@@ -164,7 +169,7 @@ const viewTicketCmd = new Command("view")
         fields?: string;
         template?: string;
         listFields?: boolean;
-      }
+      },
     ) => {
       let client: ZendeskClient;
       try {
@@ -172,8 +177,8 @@ const viewTicketCmd = new Command("view")
       } catch (err) {
         console.error(
           chalk.red(
-            `${(err as Error).message}\nExpected env: ZENDESK_SUB_DOMAIN and ZENDESK_API_KEY`
-          )
+            `${(err as Error).message}\nExpected env: ZENDESK_SUB_DOMAIN and ZENDESK_API_KEY`,
+          ),
         );
         process.exitCode = 1;
         return;
@@ -184,8 +189,8 @@ const viewTicketCmd = new Command("view")
           const url = client.getAgentTicketUrl(id);
           await import("node:child_process").then(({ exec }) =>
             exec(
-              `${process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open"} ${url}`
-            )
+              `${process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open"} ${url}`,
+            ),
           );
           return;
         }
@@ -237,7 +242,7 @@ const viewTicketCmd = new Command("view")
                 let cur: any = root;
                 for (const p of parts) cur = cur?.[p];
                 return cur == null ? "" : String(cur);
-              }
+              },
             );
             console.log(rendered);
             return;
@@ -262,7 +267,7 @@ const viewTicketCmd = new Command("view")
             `${chalk.bold("Requester ID:")} ${t.requester_id ?? "-"}`,
             `${chalk.bold("Created:")} ${t.created_at ?? "-"}`,
             `${chalk.bold("Updated:")} ${t.updated_at ?? "-"}`,
-          ].join("\n")
+          ].join("\n"),
         );
 
         if (options.comments) {
@@ -274,7 +279,7 @@ const viewTicketCmd = new Command("view")
                 [
                   `- ${chalk.bold(String(c.id ?? "-"))} by ${c.author_id ?? "-"} at ${c.created_at ?? "-"}`,
                   `  ${String(c.body ?? "").slice(0, 200)}`,
-                ].join("\n")
+                ].join("\n"),
               );
             }
           }
@@ -283,7 +288,7 @@ const viewTicketCmd = new Command("view")
         console.error(chalk.red(`Error: ${(error as Error).message}`));
         process.exitCode = 1;
       }
-    }
+    },
   );
 
 ticketCmd.addCommand(viewTicketCmd);
