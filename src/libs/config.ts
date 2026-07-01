@@ -7,6 +7,20 @@ import { z } from "zod";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Walk up from this file looking for the package root (marked by
+// package.json). This avoids hard-coding a fixed number of directory
+// levels, which would break once this file is bundled into a single
+// dist/index.js sitting at a different depth than src/libs/config.ts.
+function findProjectRoot(startDir: string): string {
+  let dir = startDir;
+  while (true) {
+    if (fs.existsSync(path.join(dir, "package.json"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return startDir;
+    dir = parent;
+  }
+}
+
 const configSchema = z
   .object({
     ZENDESK_SUB_DOMAIN: z.string().min(1, "ZENDESK_SUB_DOMAIN is required"),
@@ -33,12 +47,12 @@ export function getConfig(customEnvPath?: string): AppConfig {
     return cachedConfig;
   }
 
-  const projectRoot = path.resolve(__dirname, "../../");
+  const projectRoot = findProjectRoot(__dirname);
   const envPath = customEnvPath ?? path.join(projectRoot, ".env");
 
   if (!fs.existsSync(envPath)) {
     throw new Error(
-      `.env file not found at ${envPath} and required environment variables are not set`
+      `.env file not found at ${envPath} and required environment variables are not set`,
     );
   }
 
